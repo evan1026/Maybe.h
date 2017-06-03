@@ -186,6 +186,23 @@ public:
         if (*this) return *value;
         else throw null_maybe_exception();
     }
+
+    /*!
+     * Compares two Maybe objects by first checking they both have or don't
+     * have a value, and then using the value's operator==
+     */
+    template<typename oT>
+    bool operator==(const Maybe<oT>& other) const {
+        if ((value == nullptr && other.value != nullptr) || (value != nullptr && other.value == nullptr)) {
+            return false;
+        }
+
+        if (value == nullptr && other.value == nullptr) {
+            return true;
+        }
+
+        return *value == *other.value;
+    }
 };
 
 #endif
