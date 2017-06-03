@@ -4,6 +4,19 @@
 #include <stdexcept>
 #include <memory>
 
+// operator== check from https://stackoverflow.com/questions/6534041/how-to-check-whether-operator-exists
+namespace Maybe_Tests
+{
+  struct No {};
+  template<typename T, typename Arg> No operator== (const T&, const Arg&);
+
+  template<typename T, typename Arg = T>
+  struct EqualExists
+  {
+    enum { value = !std::is_same<decltype(*(T*)(0) == *(Arg*)(0)), No>::value };
+  };
+}
+
 /*!
  * Exception thrown when someone tries to extract a value from an empty Maybe.
  */
@@ -187,21 +200,56 @@ public:
         else throw null_maybe_exception();
     }
 
+private:
+    template<typename oT>
+    typename std::enable_if<Maybe_Tests::EqualExists<T, oT>::value, bool>::type doEqualComparison(const Maybe<oT>& other) const {
+        return (*this)() == other();
+    }
+    template<typename oT>
+    typename std::enable_if<!Maybe_Tests::EqualExists<T, oT>::value, bool>::type doEqualComparison(const Maybe<oT>& other) const {
+        return false;
+    }
+
+public:
+
     /*!
-     * Compares two Maybe objects by first checking they both have or don't
-     * have a value, and then using the value's operator==
+     * Compares two Maybe objects
+     *
+     * Truth table (a and b are aribitrary values of type T s.t. a != b
+     * and c and d are of type oT s.t. c == a and d != a; nullptr<T> means
+     * a nullptr assigned to a pointer of type T):
+     *
+     * +-------------+-------------+-------+
+     * | this->value | other.value | Out   |
+     * +-------------+-------------+-------+
+     * | a           | a           | true  |
+     * | a           | b           | false |
+     * | a           | c           | true  |
+     * | a           | d           | false |
+     * | a           | nullptr     | false |
+     * | nullptr<T>  | nullptr<T>  | true  |
+     * | nullptr<T>  | nullptr<oT> | false |
+     * +-------------+-------------+-------+
      */
     template<typename oT>
     bool operator==(const Maybe<oT>& other) const {
-        if ((value == nullptr && other.value != nullptr) || (value != nullptr && other.value == nullptr)) {
+        if ((*this && !other) || (!*this && other)) {
             return false;
         }
 
-        if (value == nullptr && other.value == nullptr) {
-            return true;
+        if (!*this && !other) {
+            return std::is_same<T, oT>::value;
         }
 
-        return *value == *other.value;
+        return doEqualComparison(other);
+    }
+
+    /*
+     * != operator which leverages == operator
+     */
+    template<typename oT>
+    bool operator!=(const Maybe<oT>& other) const {
+        return !(*this == other);
     }
 };
 
