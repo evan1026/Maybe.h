@@ -1,6 +1,9 @@
 #ifndef MAYBE_H
 #define MAYBE_H
 
+#include <stdexcept>
+#include <memory>
+
 /*!
  * Exception thrown when someone tries to extract a value from an empty Maybe.
  */
@@ -137,15 +140,21 @@ public:
     }
 
     /*!
-     * Assign to Maybe based on anything T can be assigned by
+     * Assign to Maybe based on anything T can be assigned by.
+     *
+     * Note: It also needs to be constructable from the same type
+     * because if the object has never been constructed, the assignment
+     * operator can misbehave, and I do not want to require an object to
+     * be default constructable.
      */
     template <typename O>
     Maybe<T>& operator=(const O& other) {
         if (value == nullptr) {
             value = alloc.allocate(1);
+            alloc.construct(value, other);
+        } else {
+            *value = other;
         }
-
-        *value = other;
 
         return *this;
     }
