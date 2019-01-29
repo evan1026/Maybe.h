@@ -92,6 +92,13 @@ public:
     }
 
     /*!
+     * Construct with null pointer
+     */
+    Maybe<T>(const std::nullptr_t& null_p) {
+        value = null_p;
+    }
+
+    /*!
      * Frees up the contained value, if there is one
      */
     ~Maybe<T>() {
